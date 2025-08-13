@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Marmar’s Penguin Party 🐧</title>
+  <style>
+    :root{
+      --bg: #0b1020;
+      --card: #121a33;
+      --accent: #7dd3fc;
+      --accent-2:#a78bfa;
+      --snow:#f8fafc;
+      --ink:#e2e8f0;
+      --good:#34d399;
+      --warn:#fbbf24;
+      --bad:#f87171;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 700px at 80% -10%, #22315a 0%, transparent 70%),
+        radial-gradient(900px 600px at -10% 30%, #1c2a50 0%, transparent 70%),
+        linear-gradient(180deg, #0a1329 0%, #0b1020 60%);
+    }
+    a{color:var(--accent)}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:var(--shadow)}
+    .title{font-size:clamp(28px,4vw,44px);line-height:1.05;margin:0 0 8px}
+    .subtitle{opacity:.9;margin:0 0 16px}
+    .center{display:flex;align-items:center;justify-content:center}
+
+    /* Selection screen */
+    #screen-select{padding:20px}
+    .grid{display:grid;grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:16px}
+    .char{position:relative;overflow:hidden;padding:16px;border-radius:16px;cursor:pointer;transition:transform .15s ease, box-shadow .15s ease;border:1px solid rgba(255,255,255,.08);}
+    .char:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.35)}
+    .badge{position:absolute;top:12px;right:12px;background:rgba(125,211,252,.15);color:var(--accent);border:1px solid rgba(125,211,252,.45);padding:6px 10px;border-radius:999px;font-size:12px}
+    .char h3{margin:6px 0 6px;font-size:20px}
+    .char p{margin:0;opacity:.95;font-size:14px}
+    .emoji{font-size:40px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+    .startbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:16px}
+    .btn{appearance:none;border:0;cursor:pointer;border-radius:12px;padding:12px 18px;font-weight:700;letter-spacing:.2px}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#06101a}
+    .btn-ghost{background:transparent;color:var(--ink);border:1px solid rgba(255,255,255,.14)}
+
+    /* Game */
+    #screen-game{display:none}
+    .hud{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+    .pill{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);font-weight:600}
+    .pill .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--good)}
+    .hud .left,.hud .right{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    canvas{display:block;width:100%;height:auto;border-bottom-left-radius:16px;border-bottom-right-radius:16px}
+
+    .bar{position:relative;height:10px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;min-width:160px}
+    .bar>span{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%}
+
+    /* Modals */
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(5,8,16,.55);backdrop-filter: blur(6px);padding:20px;z-index:50}
+    .modal .box{max-width:720px;width:100%;}
+
+    /* Quiz */
+    #quiz{display:none}
+    #quiz .q{font-size:18px;margin-bottom:12px}
+    #quiz .opts{display:grid;gap:8px}
+    #quiz button{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:var(--ink);cursor:pointer}
+    #quiz button:hover{background:rgba(255,255,255,.12)}
+
+    /* Tests modal */
+    #tests .pass{color:var(--good)}
+    #tests .fail{color:var(--bad)}
+
+    /* Mobile controls */
+    .controls{position:fixed;left:12px;bottom:12px;display:grid;grid-template-columns:60px 60px 60px;grid-template-rows:60px 60px 60px;gap:8px;opacity:.92;user-select:none}
+    .pad{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);border-radius:12px;display:flex;align-items:center;justify-content:center}
+    .pad:active{transform:scale(.98)}
+    .ability-btn{position:fixed;right:14px;bottom:18px;width:86px;height:86px;border-radius:999px;border:2px solid rgba(255,255,255,.25);background:radial-gradient(circle at 30% 30%, rgba(125,211,252,.35), rgba(167,139,250,.25));color:#06101a;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);opacity:.96}
+    .ability-btn span{pointer-events:none}
+    @media (min-width: 980px){.controls,.ability-btn{display:none}}
+
+    /* Footer note */
+    .note{opacity:.8;font-size:13px;margin-top:10px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="card" style="padding:20px 20px 6px;">
+      <h1 class="title">Marmar’s Penguin Party 🐧❄️</h1>
+      <p class="subtitle">A tiny cozy game made just for <strong>Marmar</strong> — starfish collector, smile bringer, and penguin queen. Choose a pinguïn and collect fish while dodging snowballs. Each friend has a special power!</p>
+    </header>
+
+    <!-- Selection Screen -->
+    <section id="screen-select" class="card">
+      <div class="grid" id="char-grid"></div>
+      <div class="startbar">
+        <button id="btn-start" class="btn btn-primary" disabled>Start game ▶</button>
+        <button id="btn-how" class="btn btn-ghost">How to play</button>
+        <button id="btn-test" class="btn btn-ghost" title="Run quick self-checks">🧪 Self‑check</button>
+      </div>
+      <p class="note">Keyboard: <strong>WASD/Arrows</strong> to move, <strong>Space</strong> for ability, <strong>P</strong> to pause, <strong>R</strong> to restart. Works on phone too — use the on‑screen pads!</p>
+    </section>
+
+    <!-- Game Screen -->
+    <section id="screen-game" class="card">
+      <div class="hud">
+        <div class="left">
+          <div class="pill" id="hud-char">🐧 <strong>—</strong></div>
+          <div class="pill" id="hud-hearts" title="Lives">❤️❤️❤️</div>
+          <div class="pill" title="Score">🐟 <span id="hud-score">0</span></div>
+          <div class="pill" title="Time">⏱️ <span id="hud-time">60</span>s</div>
+        </div>
+        <div class="right">
+          <div class="bar" title="Ability cooldown"><span id="coolbar"></span></div>
+          <div class="pill" id="status-msg" style="display:none"></div>
+          <button id="btn-pause" class="btn btn-ghost">⏸️ Pause</button>
+        </div>
+      </div>
+      <canvas id="game" width="960" height="560" aria-label="Game canvas"></canvas>
+    </section>
+
+    <!-- Quiz overlay (Siipi) -->
+    <div id="quiz" class="modal" role="dialog" aria-modal="true">
+      <div class="box card" style="padding:18px 18px 20px;">
+        <div class="q" id="quiz-q">Question?</div>
+        <div class="opts" id="quiz-opts"></div>
+      </div>
+    </div>
+
+    <!-- Tests overlay -->
+    <div id="tests" class="modal" role="dialog" aria-modal="true">
+      <div class="box card" style="padding:18px 18px 20px;max-width:780px">
+        <h2 style="margin:0 0 10px">Self‑check results</h2>
+        <div id="tests-body" style="line-height:1.6"></div>
+        <div class="startbar"><button class="btn btn-primary" id="tests-close">Close</button></div>
+      </div>
+    </div>
+
+    <!-- How to play modal -->
+    <div id="about" class="modal">
+      <div class="box card" style="padding:18px 18px 20px;">
+        <h2 style="margin:0 0 6px">How to play</h2>
+        <p style="margin:0 0 8px">Collect 🐟 fish for Marmar and avoid rolling snowballs. Reach the target score before time runs out!</p>
+        <ul style="margin:8px 0 14px;line-height:1.65">
+          <li><strong>Lumi</strong> — tiny jokester. <em>Ability:</em> <strong>Hide</strong> for a short time so snowballs pass through.</li>
+          <li><strong>Siipi</strong> — smart cookie. <em>Ability:</em> a quick <strong>Quiz</strong>. Get it right to freeze hazards and gain bonus points.</li>
+          <li><strong>Nokka</strong> — giant doctor. <em>Ability:</em> a healing <strong>Fart Burst</strong> 💨 that pushes danger away and restores a heart.</li>
+          <li><strong>Talvi</strong> — rockhopper chaos. <em>Ability:</em> <strong>Rockhop</strong> — a wild hop with a random twist.</li>
+        </ul>
+        <div class="startbar"><button class="btn btn-primary" id="about-close">Let’s go!</button></div>
+      </div>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div class="controls" id="controls">
+      <div class="pad"></div>
+      <div class="pad" data-dir="up">▲</div>
+      <div class="pad"></div>
+      <div class="pad" data-dir="left">◀</div>
+      <div class="pad"></div>
+      <div class="pad" data-dir="right">▶</div>
+      <div class="pad"></div>
+      <div class="pad" data-dir="down">▼</div>
+      <div class="pad"></div>
+    </div>
+    <button class="ability-btn" id="btn-ability"><span>✨</span></button>
+
+  </div>
+
+  <!-- Guard against noisy external extension errors (e.g., Zotero) so they don't disrupt the game -->
+  <script>
+  (function(){
+    'use strict';
+    const ignoreMsgs=[
+      'Zotero.Schema.init', // Some browsers/extensions may log this when their connector fails on sandbox pages
+    ];
+    function looksIgnorable(msg){ return ignoreMsgs.some(s=> (msg||'').includes(s)); }
+    window.addEventListener('error', function(e){
+      // Only swallow extension errors we positively recognize
+      const msg = String(e && (e.message || e.error && e.error.message) || '');
+      if(looksIgnorable(msg)){
+        e.preventDefault && e.preventDefault();
+        e.stopImmediatePropagation && e.stopImmediatePropagation();
+        try{ console.warn('[PenguinParty] Ignored external error:', msg); }catch(_){ }
+        return false;
+      }
+    }, true);
+    window.addEventListener('unhandledrejection', function(e){
+      const msg = String(e && (e.reason && e.reason.message || e.reason) || '');
+      if(looksIgnorable(msg)){
+        e.preventDefault && e.preventDefault();
+        try{ console.warn('[PenguinParty] Ignored external promise rejection:', msg); }catch(_){ }
+      }
+    });
+  })();
+  </script>
+
+  <script>
+  (function(){
+    'use strict';
+    // Utility
+    const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+    const rand=(a,b)=>Math.random()*(b-a)+a;
+    const choice=a=>a[Math.floor(Math.random()*a.length)];
+    const now=()=>performance.now();
+
+    // Characters
+    const CHARACTERS=[
+      {key:'Lumi', label:'Lumi — the tiny prankster', emoji:'🫧', color:'#7dd3fc', desc:'A very small pinguïn who loves hiding and making everyone laugh. Ability: Hide (invisible for a short time).', size:12, speed:220, ability:'hide', cooldown:7000, duration:2800},
+      {key:'Siipi', label:'Siipi — the brainy buddy', emoji:'📚', color:'#a7f3d0', desc:'Medium-sized, super smart, loves learning. Ability: Quick Quiz (freeze hazards & bonus!).', size:16, speed:200, ability:'quiz', cooldown:9000, duration:5000},
+      {key:'Nokka', label:'Nokka — the doctor (and tooter)', emoji:'🩺', color:'#fca5a5', desc:'Very big, a kind doctor who… farts a lot. Ability: Healing Fart Burst (pushes danger away + heal).', size:22, speed:170, ability:'fart', cooldown:6000, duration:1000},
+      {key:'Talvi', label:'Talvi — the rockhopper chaos', emoji:'🪨', color:'#c4b5fd', desc:'Spiky‑haired rockhopper; a bit weird and very wild. Ability: Rockhop (random dash + quirky effect).', size:18, speed:210, ability:'hop', cooldown:5500, duration:800},
+    ];
+
+    // Selection grid
+    const grid=document.getElementById('char-grid');
+    let selected=null;
+    CHARACTERS.forEach((c)=>{
+      const el=document.createElement('button');
+      el.className='char';
+      el.innerHTML=`<div class="badge">${c.key}</div>
+        <div class="center" style="gap:12px;align-items:flex-start">
+          <div class="emoji">🐧</div>
+          <div style="flex:1">
+            <h3>${c.label}</h3>
+            <p>${c.desc}</p>
+          </div>
+        </div>`;
+      el.style.background=`linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)), radial-gradient(600px 120px at -10% -10%, ${c.color}33, transparent 60%)`;
+      el.addEventListener('click',()=>{
+        [...grid.children].forEach(x=>x.style.outline='none');
+        el.style.outline=`3px solid ${c.color}`;
+        selected=c;
+        document.getElementById('btn-start').disabled=false;
+      });
+      grid.appendChild(el);
+    });
+
+    const screenSelect=document.getElementById('screen-select');
+    const screenGame=document.getElementById('screen-game');
+    const btnStart=document.getElementById('btn-start');
+    const btnHow=document.getElementById('btn-how');
+    const btnTest=document.getElementById('btn-test');
+    const about=document.getElementById('about');
+    const aboutClose=document.getElementById('about-close');
+    btnHow.onclick=()=>{about.style.display='flex'}
+    aboutClose.onclick=()=>{about.style.display='none'}
+
+    // Game state
+    const canvas=document.getElementById('game');
+    const ctx=canvas.getContext('2d');
+    const hudChar=document.getElementById('hud-char');
+    const hudHearts=document.getElementById('hud-hearts');
+    const hudScore=document.getElementById('hud-score');
+    const hudTime=document.getElementById('hud-time');
+    const coolbar=document.getElementById('coolbar');
+    const statusMsg=document.getElementById('status-msg');
+
+    let W=canvas.width, H=canvas.height;
+    const resize=()=>{ const rect=screenGame.getBoundingClientRect(); const ratio=960/560; let w=Math.min(rect.width, 960); let h=w/ratio; if(h>window.innerHeight-170){h=window.innerHeight-170; w=h*ratio} canvas.style.width=w+'px'; canvas.style.height=h+'px'; };
+    window.addEventListener('resize', resize);
+
+    const keys={up:false,down:false,left:false,right:false};
+    const setKey=(k,v)=>{keys[k]=v};
+    window.addEventListener('keydown',e=>{
+      if(e.key==='ArrowUp'||e.key==='w'||e.key==='W') setKey('up',true);
+      if(e.key==='ArrowDown'||e.key==='s'||e.key==='S') setKey('down',true);
+      if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') setKey('left',true);
+      if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') setKey('right',true);
+      if(e.key===' '){ e.preventDefault(); tryAbility(); }
+      if(e.key==='p'||e.key==='P'){togglePause()}
+      if(e.key==='r'||e.key==='R'){restart()}
+    });
+    window.addEventListener('keyup',e=>{
+      if(e.key==='ArrowUp'||e.key==='w'||e.key==='W') setKey('up',false);
+      if(e.key==='ArrowDown'||e.key==='s'||e.key==='S') setKey('down',false);
+      if(e.key==='ArrowLeft'||e.key==='a'||e.key==='A') setKey('left',false);
+      if(e.key==='ArrowRight'||e.key==='d'||e.key==='D') setKey('right',false);
+    });
+
+    // Mobile pads
+    const pads=document.querySelectorAll('.pad[data-dir]');
+    pads.forEach(p=>{
+      const dir=p.dataset.dir;
+      const down=()=>setKey(dir,true);
+      const up=()=>setKey(dir,false);
+      p.addEventListener('touchstart',e=>{e.preventDefault();down()},{passive:false});
+      p.addEventListener('touchend',e=>{e.preventDefault();up()},{passive:false});
+      p.addEventListener('mousedown',down);
+      p.addEventListener('mouseup',up);
+      p.addEventListener('mouseleave',up);
+    });
+    document.getElementById('btn-ability').onclick=()=>tryAbility();
+
+    // Game variables
+    let player=null, hazards=[], items=[];
+    let score=0, lives=3, target=20; // target fish
+    let tLeft=60; // seconds
+    let last=0, running=false, paused=false;
+    let invulnUntil=0, abilityReadyAt=0, abilityActiveUntil=0;
+    let hazardFrozenUntil=0;
+
+    const vibe=(text, tone='good')=>{
+      statusMsg.textContent=text; statusMsg.style.display='block';
+      const map={good:'var(--good)', warn:'var(--warn)', bad:'var(--bad)'};
+      statusMsg.style.borderColor=map[tone]; statusMsg.style.color=map[tone];
+      clearTimeout(statusMsg._t);
+      statusMsg._t=setTimeout(()=>statusMsg.style.display='none', 1800);
+    }
+
+    const spawnHazard=()=>{
+      // Snowball enters from a random edge
+      const speed=rand(60, 140);
+      const r=rand(10,22);
+      let x,y,vx,vy;
+      const side=Math.floor(Math.random()*4);
+      if(side===0){ x=-r; y=rand(0,H); vx=speed; vy=rand(-40,40);} // left
+      else if(side===1){ x=W+r; y=rand(0,H); vx=-speed; vy=rand(-40,40);} // right
+      else if(side===2){ x=rand(0,W); y=-r; vx=rand(-40,40); vy=speed;} // top
+      else { x=rand(0,W); y=H+r; vx=rand(-40,40); vy=-speed;} // bottom
+      hazards.push({x,y,vx,vy,r, spin:rand(-0.05,0.05)});
+    }
+
+    const spawnFish=()=>{
+      const x=rand(40,W-40), y=rand(40,H-40);
+      items.push({type:'fish', x, y, r:10});
+    }
+    const spawnHeart=()=>{
+      const x=rand(40,W-40), y=rand(40,H-40);
+      items.push({type:'heart', x, y, r:11});
+    }
+
+    const start=()=>{
+      // Init with selected char
+      const c=selected || CHARACTERS[0];
+      player={x:W/2, y:H/2, r:c.size, speed:c.speed, char:c, invisible:false, alpha:1};
+      hazards=[]; items=[]; score=0; lives=3; tLeft=60; invulnUntil=0; abilityReadyAt=0; abilityActiveUntil=0; hazardFrozenUntil=0;
+      for(let i=0;i<6;i++) spawnHazard();
+      for(let i=0;i<4;i++) spawnFish();
+      hudChar.innerHTML=`🐧 <strong>${c.key}</strong>`;
+      hudHearts.textContent='❤️❤️❤️';
+      hudScore.textContent=score;
+      hudTime.textContent=tLeft;
+      abilityReadyAt=now();
+      running=true; paused=false; last=now();
+      resize();
+      requestAnimationFrame(loop);
+    }
+
+    const togglePause=()=>{ if(!running) return; paused=!paused; document.getElementById('btn-pause').textContent=paused?'▶ Resume':'⏸️ Pause'; if(!paused){ last=now(); requestAnimationFrame(loop);} }
+    document.getElementById('btn-pause').onclick=togglePause;
+
+    const restart=()=>{ if(!running) return; start(); }
+
+    btnStart.addEventListener('click',()=>{
+      screenSelect.style.display='none';
+      screenGame.style.display='block';
+      start();
+    });
+
+    // Drawing helpers
+    function drawBackground(){
+      // Ice field
+      const g=ctx.createLinearGradient(0,0,0,H);
+      g.addColorStop(0,'#0d1b36'); g.addColorStop(1,'#0b1429');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+      // Ice shine
+      const g2=ctx.createRadialGradient(W*0.8,H*0.15,40,W*0.8,H*0.15,400);
+      g2.addColorStop(0,'rgba(125,211,252,.18)'); g2.addColorStop(1,'transparent');
+      ctx.fillStyle=g2; ctx.beginPath(); ctx.arc(W*0.8,H*0.15,400,0,Math.PI*2); ctx.fill();
+      // Falling snow (subtle)
+      const t=now()*0.0003;
+      ctx.fillStyle='rgba(255,255,255,.06)';
+      for(let i=0;i<80;i++){
+        const sx=(i*73)%W; const sy=(i*91+t*60)%H;
+        ctx.fillRect((sx+Math.sin(t+i)*8)%W, (sy)%H, 2,2);
+      }
+      // Goal banner
+      ctx.fillStyle='rgba(255,255,255,.08)';
+      ctx.fillRect(W-190, 18, 170, 28);
+      ctx.fillStyle='#cfe9ff'; ctx.font='bold 16px ui-sans-serif,system-ui';
+      ctx.fillText(`Goal: ${target} 🐟`, W-178, 38);
+    }
+
+    function drawPenguin(p){
+      ctx.save();
+      ctx.globalAlpha=p.alpha;
+      // body
+      const R=p.r; const x=p.x, y=p.y;
+      const bodyGrad=ctx.createRadialGradient(x-4,y-6,R*0.4,x,y,R);
+      bodyGrad.addColorStop(0,'#7dd3fc'); bodyGrad.addColorStop(1,'#1f2937');
+      ctx.fillStyle=bodyGrad; ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2); ctx.fill();
+      // belly
+      ctx.fillStyle='rgba(255,255,255,.9)'; ctx.beginPath(); ctx.arc(x,y+2,R*0.7,0,Math.PI*2); ctx.fill();
+      // beak
+      ctx.fillStyle='#fbbf24'; ctx.beginPath(); ctx.moveTo(x+R*0.3,y); ctx.lineTo(x+R*0.95,y+R*0.1); ctx.lineTo(x+R*0.3,y+R*0.2); ctx.closePath(); ctx.fill();
+      // eyes
+      ctx.fillStyle='#111827'; ctx.beginPath(); ctx.arc(x-R*0.25,y-R*0.15,R*0.12,0,Math.PI*2); ctx.arc(x+R*0.05,y-R*0.1,R*0.12,0,Math.PI*2); ctx.fill();
+      // rockhopper crest for Talvi
+      if(p.char.key==='Talvi'){
+        ctx.strokeStyle='#fde68a'; ctx.lineWidth=2;
+        for(let i=-3;i<=3;i++){
+          ctx.beginPath(); ctx.moveTo(x- R*0.2 + i*2, y-R*0.9);
+          ctx.lineTo(x- R*0.2 + i*2 + (i%2?6:-6), y-R*1.2);
+          ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x+ R*0.3 + i*2, y-R*0.9);
+          ctx.lineTo(x+ R*0.3 + i*2 + (i%2?-6:6), y-R*1.2);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    function drawSnowball(b){
+      const g=ctx.createRadialGradient(b.x-b.r*0.3,b.y-b.r*0.3, b.r*0.4, b.x,b.y,b.r);
+      g.addColorStop(0,'#e5f3ff'); g.addColorStop(1,'#93c5fd');
+      ctx.fillStyle=g; ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,.4)'; ctx.lineWidth=1; ctx.stroke();
+    }
+
+    function drawFish(it){
+      const {x,y,r}=it; ctx.save(); ctx.translate(x,y); ctx.scale(1,1);
+      ctx.fillStyle='#60a5fa';
+      ctx.beginPath(); ctx.ellipse(0,0,r*1.4,r*0.9,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#1e3a8a'; ctx.beginPath(); ctx.moveTo(-r*1.3,0); ctx.lineTo(-r*2.1,-r*.9); ctx.lineTo(-r*2.1,r*.9); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#e5e7eb'; ctx.beginPath(); ctx.arc(r*0.6,-r*0.2,r*0.22,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawHeart(it){
+      const {x,y,r}=it; ctx.save(); ctx.translate(x,y);
+      ctx.fillStyle='#ef4444';
+      ctx.beginPath();
+      ctx.moveTo(0, r*0.9);
+      ctx.bezierCurveTo(r*1.6, r*-0.3, r*0.9, r*-1.6, 0, r*-0.4);
+      ctx.bezierCurveTo(r*-0.9, r*-1.6, r*-1.6, r*-0.3, 0, r*0.9);
+      ctx.fill(); ctx.restore();
+    }
+
+    function drawFart(x,y){
+      // goofy cloud
+      ctx.save(); ctx.globalAlpha=0.85; ctx.fillStyle='rgba(200,255,200,.65)';
+      for(let i=0;i<6;i++){ ctx.beginPath(); ctx.arc(x+Math.cos(i)*22, y+Math.sin(i)*16, 14 + (i%2?6:0), 0, Math.PI*2); ctx.fill(); }
+      ctx.restore();
+    }
+
+    // Collisions
+    const hit=(ax,ay,ar, bx,by,br)=> ( (ax-bx)**2 + (ay-by)**2 ) <= (ar+br)**2;
+
+    // Loop
+    let spawnT=0, fishT=0, heartT=0;
+    function loop(ts){
+      if(!running) return; if(paused){return;}
+      const dt=(ts-last)/1000; last=ts;
+      // timers
+      spawnT+=dt; fishT+=dt; heartT+=dt;
+      if(spawnT>1.2){ spawnHazard(); spawnT=0 }
+      if(fishT>1.7){ spawnFish(); fishT=0 }
+      if(heartT>9.5){ spawnHeart(); heartT=0 }
+
+      // countdown
+      tLeft = Math.max(0, tLeft - dt);
+
+      // update HUD
+      hudTime.textContent=Math.ceil(tLeft);
+      hudScore.textContent=score;
+      hudHearts.textContent='❤️'.repeat(lives);
+      const cd = player ? Math.max(0, (abilityReadyAt - now()) / player.char.cooldown * 100) : 0;
+      coolbar.style.width = (100 - clamp(cd,0,100)) + '%';
+
+      // update
+      updatePlayer(dt);
+      updateWorld(dt);
+
+      // draw
+      ctx.clearRect(0,0,W,H);
+      drawBackground();
+      items.forEach(it=>{ if(it.type==='fish') drawFish(it); else drawHeart(it); });
+      hazards.forEach(drawSnowball);
+      if(player && player.char.key==='Nokka' && now()<abilityActiveUntil){ drawFart(player.x+player.r*0.5, player.y) }
+      if(player) drawPenguin(player);
+
+      // end conditions
+      if(tLeft<=0){ end(false); return }
+      if(score>=target){ end(true); return }
+
+      requestAnimationFrame(loop);
+    }
+
+    function updatePlayer(dt){
+      if(!player) return;
+      const p=player; const sp=p.speed;
+      let vx=(keys.right?1:0)-(keys.left?1:0); let vy=(keys.down?1:0)-(keys.up?1:0);
+      const len=Math.hypot(vx,vy)||1; vx/=len; vy/=len;
+      p.x=clamp(p.x+vx*sp*dt, p.r+2, W-p.r-2);
+      p.y=clamp(p.y+vy*sp*dt, p.r+2, H-p.r-2);
+
+      // Invisibility alpha tween
+      p.alpha = p.invisible ? 0.35 : 1;
+    }
+
+    function updateWorld(dt){
+      if(!player) return;
+      const t=now();
+      const frozen = t < hazardFrozenUntil;
+      // hazards move
+      hazards.forEach(b=>{
+        if(!frozen){ b.x += b.vx * dt; b.y += b.vy * dt; }
+        // bounce off walls
+        if(b.x<b.r && b.vx<0) b.vx*=-1; if(b.x>W-b.r && b.vx>0) b.vx*=-1;
+        if(b.y<b.r && b.vy<0) b.vy*=-1; if(b.y>H-b.r && b.vy>0) b.vy*=-1;
+      });
+      // clean up items that are too many
+      if(items.length>40) items.splice(0, items.length-40);
+
+      // collisions with items
+      for(let i=items.length-1;i>=0;i--){ const it=items[i];
+        if(hit(player.x,player.y,player.r, it.x,it.y,it.r)){
+          if(it.type==='fish'){ score++; vibe(choice(['Yum!','Nom nom!','For Marmar!','Slurp!','Chomp!']), 'good'); }
+          else if(it.type==='heart'){ if(lives<3){ lives++; vibe('Healed +1 ❤','good'); } else { score+=2; vibe('+2 bonus 🐟','good'); } }
+          items.splice(i,1);
+        }
+      }
+
+      // collisions with hazards
+      if(!player.invisible && t>invulnUntil){
+        for(let i=0;i<hazards.length;i++){
+          const b=hazards[i];
+          if(hit(player.x,player.y,player.r*0.9, b.x,b.y,b.r)){
+            lives--; invulnUntil=t+1200; vibe(choice(['Ouch!','Boink!','Wham!']), 'bad');
+            if(lives<=0){ end(false); return }
+            break;
+          }
+        }
+      }
+
+      // ability ongoing effects
+      if(player.char.key==='Nokka' && t<abilityActiveUntil){
+        hazards.forEach(b=>{
+          const dx=b.x-player.x, dy=b.y-player.y; const d=Math.hypot(dx,dy)||1; if(d<130){
+            const f=(130-d)/130*420; b.vx += (dx/d)*f*dt; b.vy += (dy/d)*f*dt;
+          }
+        });
+      }
+    }
+
+    function tryAbility(){
+      if(!player) return;
+      const t=now(); if(t<abilityReadyAt) return; abilityReadyAt=t + player.char.cooldown; abilityActiveUntil=t + player.char.duration;
+      const type=player.char.ability;
+      if(type==='hide') abilityHide();
+      else if(type==='quiz') abilityQuiz();
+      else if(type==='fart') abilityFart();
+      else if(type==='hop') abilityHop();
+    }
+
+    function abilityHide(){
+      player.invisible=true; vibe('Lumi hides 👻','warn');
+      setTimeout(()=>{player.invisible=false}, player.char.duration);
+    }
+
+    // Quiz ability for Siipi
+    const QUIZ_BANK=[
+      {q:'Which is a bird?', a:['Penguin','Broccoli','Laptop','Rock'], i:0},
+      {q:'2 + 5 = ?', a:['6','7','8','9'], i:1},
+      {q:'Opposite of hot?', a:['Cold','Bold','Old','Sold'], i:0},
+      {q:'Color of the sky (day)?', a:['Green','Blue','Pink','Orange'], i:1},
+      {q:'Marmar’s favorite animals today?', a:['Penguins!','Rabbits','Dragons','Mosquitos'], i:0},
+      {q:'Which word means funny?', a:['Hilarious','Serious','Spacious','Curious'], i:0},
+      {q:'How many legs do penguins have?', a:['Two','Four','Six','Eight'], i:0},
+      {q:'What do penguins eat?', a:['Fish','Cakes','Books','Clouds'], i:0},
+    ];
+    function abilityQuiz(){
+      const quiz=document.getElementById('quiz');
+      const qEl=document.getElementById('quiz-q');
+      const oEl=document.getElementById('quiz-opts');
+      const card=choice(QUIZ_BANK);
+      quiz.style.display='flex';
+      qEl.textContent=card.q;
+      oEl.innerHTML='';
+      hazardFrozenUntil=now()+player.char.duration+2000; // pause dangers during quiz + reward time
+      card.a.forEach((opt,idx)=>{
+        const b=document.createElement('button'); b.textContent=opt; b.onclick=()=>{
+          quiz.style.display='none';
+          if(idx===card.i){ score+=3; hazardFrozenUntil=now()+player.char.duration+2500; vibe('Smart! +3 🐟 + freeze ❄️','good'); }
+          else { vibe('Oops! No bonus…','warn'); }
+        }; oEl.appendChild(b);
+      });
+    }
+
+    function abilityFart(){
+      // Push hazards + heal + mini stun
+      abilityActiveUntil=now()+1000;
+      if(lives<3){ lives++; }
+      vibe('Nokka’s medic fart 💨 +1 ❤','good');
+      // visual + tiny fish sprinkle
+      for(let i=0;i<3;i++) spawnFish();
+    }
+
+    function abilityHop(){
+      // Random hop and effect
+      const angle=rand(0,Math.PI*2); const dist=rand(80,140);
+      player.x=clamp(player.x+Math.cos(angle)*dist, player.r+2, W-player.r-2);
+      player.y=clamp(player.y+Math.sin(angle)*dist, player.r+2, H-player.r-2);
+      const twist=choice(['reverse','freeze','decoys','points']);
+      if(twist==='reverse'){
+        hazards.forEach(b=>{b.vx*=-1; b.vy*=-1}); vibe('Talvi flips reality! 🔁','warn');
+      } else if(twist==='freeze'){
+        hazardFrozenUntil=now()+2000; vibe('Talvi freeze! ❄️','warn');
+      } else if(twist==='decoys'){
+        for(let i=0;i<3;i++) items.push({type:'fish', x:clamp(player.x+rand(-80,80),40,W-40), y:clamp(player.y+rand(-80,80),40,H-40), r:10});
+        vibe('Fish explosion! 🐟','good');
+      } else if(twist==='points'){
+        score+=2; vibe('+2 chaos points','good');
+      }
+    }
+
+    function end(win){
+      running=false;
+      const modal=document.createElement('div'); modal.className='modal'; modal.style.display='flex';
+      modal.innerHTML=`<div class="box card" style="padding:20px">
+        <h2 style="margin:0 0 10px">${win?'You did it! 🎉':'Time’s up!'} </h2>
+        <p style="margin:0 0 10px">Score: <strong>${score}</strong> / ${target} — Lives left: ${'❤️'.repeat(Math.max(lives,0))||'none'}</p>
+        <p style="margin:0 0 12px">Marmar, you’re the coolest! Thanks for playing with ${player.char.key}.</p>
+        <div class="startbar">
+          <button class="btn btn-primary" id="again">Play again</button>
+          <button class="btn btn-ghost" id="select">Change pinguïn</button>
+        </div>
+      </div>`;
+      document.body.appendChild(modal);
+      modal.querySelector('#again').onclick=()=>{ modal.remove(); start(); }
+      modal.querySelector('#select').onclick=()=>{ modal.remove(); screenGame.style.display='none'; screenSelect.style.display='block'; }
+      confetti();
+    }
+
+    // Tiny confetti
+    function confetti(){
+      const N=120; const parts=[]; const endAt=now()+1400;
+      function draw(){
+        const t=now(); if(t>endAt) return;
+        ctx.save();
+        for(let i=0;i<parts.length;i++){
+          const p=parts[i]; p.vy+=60/60; p.x+=p.vx; p.y+=p.vy; p.rot+=p.rv;
+          ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+          ctx.fillStyle=p.col; ctx.fillRect(-4,-2,8,4); ctx.restore();
+        }
+        ctx.restore(); requestAnimationFrame(draw);
+      }
+      for(let i=0;i<N;i++) parts.push({x:rand(0,W),y:rand(-40,0),vx:rand(-2,2),vy:rand(1,4),rot:rand(0,6.28),rv:rand(-0.2,0.2),col:choice(['#7dd3fc','#a78bfa','#34d399','#fbbf24','#fca5a5'])});
+      draw();
+    }
+
+    // ——————— Self‑check (basic tests) ———————
+    function runSelfChecks(){
+      const results=[];
+      const add=(name, pass, details='')=>results.push({name, pass, details});
+      try{ add('Canvas available', !!ctx, !ctx && '2D context missing'); }catch(e){ add('Canvas available', false, String(e)); }
+      try{ add('4 characters defined', CHARACTERS.length===4, `found ${CHARACTERS.length}`); }catch(e){ add('4 characters defined', false, String(e)); }
+      try{ const keys=[...new Set(CHARACTERS.map(c=>c.key))]; add('Character keys unique', keys.length===CHARACTERS.length, 'dup keys?'); }catch(e){ add('Character keys unique', false, String(e)); }
+      // Start with Lumi and test ability
+      try{
+        selected=CHARACTERS.find(c=>c.key==='Lumi'); start();
+        add('Game starts (Lumi)', !!player && player.char.key==='Lumi');
+        const before=player.invisible; tryAbility(); const mid=player.invisible; add('Lumi ability toggles invisibility', !before && mid);
+      }catch(e){ add('Start + Lumi ability', false, String(e)); }
+      // Test Nokka heal
+      try{
+        selected=CHARACTERS.find(c=>c.key==='Nokka'); start();
+        lives=1; const before=lives; abilityReadyAt=0; tryAbility(); const after=lives; add('Nokka heals +1 (capped at 3)', after===Math.min(before+1,3));
+      }catch(e){ add('Nokka heal', false, String(e)); }
+      // Siipi quiz opens
+      try{
+        selected=CHARACTERS.find(c=>c.key==='Siipi'); start(); abilityReadyAt=0; tryAbility();
+        const quizOpen = document.getElementById('quiz').style.display==='flex';
+        add('Siipi opens quiz', quizOpen);
+        document.getElementById('quiz').style.display='none';
+      }catch(e){ add('Siipi quiz', false, String(e)); }
+      // Talvi hop doesn’t crash
+      try{
+        selected=CHARACTERS.find(c=>c.key==='Talvi'); start(); abilityReadyAt=0; tryAbility();
+        add('Talvi hop executes', true);
+      }catch(e){ add('Talvi hop', false, String(e)); }
+      return results;
+    }
+
+    function showTests(){
+      const results=runSelfChecks();
+      const body=document.getElementById('tests-body');
+      const ok=results.filter(r=>r.pass).length;
+      const fail=results.length-ok;
+      body.innerHTML = `<p><strong>${ok} passed</strong>, <strong>${fail} failed</strong></p>`+
+        '<ul>'+results.map(r=>`<li class="${r.pass?'pass':'fail'}">${r.pass?'✓':'✗'} ${r.name}${r.details?` — <em>${r.details}</em>`:''}</li>`).join('')+'</ul>'+
+        '<p class="note">These quick smoke tests run in‑browser and don’t cover everything, but they help catch obvious issues.</p>';
+      const tests=document.getElementById('tests');
+      tests.style.display='flex';
+      document.getElementById('tests-close').onclick=()=>{tests.style.display='none'}
+    }
+
+    btnTest.addEventListener('click', showTests);
+
+    // Kick things off: open How to play the first time
+    document.addEventListener('DOMContentLoaded',()=>{ setTimeout(()=>about.style.display='flex', 200); });
+
+    // Minimal debug API (scoped) — exposed only for manual testing if needed
+    window.__PenguinParty = {
+      startWith:(key)=>{ selected=CHARACTERS.find(c=>c.key===key)||CHARACTERS[0]; if(screenSelect) screenSelect.style.display='none'; if(screenGame) screenGame.style.display='block'; start(); },
+      tryAbility:()=>tryAbility(),
+      getState:()=>({score,lives,tLeft,player:player&&player.char.key}),
+    };
+  })();
+  </script>
+</body>
+</html>
